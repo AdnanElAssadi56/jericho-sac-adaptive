@@ -1,0 +1,38 @@
+# Experiment outputs (large files, machine-specific)
+logging/
+validation/
+
+# Dependencies (downloaded externally)
+dependencies/
+
+# SentencePiece models (large binary files, extracted locally)
+models/spm_models/
+models/__MACOSX/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Model checkpoints and large files
+*.pt
+*.pth
+*.ckpt
+*.h5
+
+# TensorBoard logs
+runs/
+tb_logs/
+
+# Weights & Biases
+wandb/
