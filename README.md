@@ -42,29 +42,29 @@ cd ..
 
 ### 3. Extract SentencePiece Model
 ```bash
-# Navigate to the main code directory
-cd "Learning to play text-based games with maximum entropy rl"
+# Navigate to the models directory
+cd models
 
-# Extract the SentencePiece model (contains unigram_8k.model and vocab)
+# Extract the SentencePiece model (creates spm_models/ subdirectory)
 unzip spm_models.zip
 
-# Verify the model file exists
-ls -la unigram_8k.model
+# Verify the model files exist
+ls -la spm_models/
 
 # Return to project root
 cd ..
 ```
 
 **Important**: The `unigram_8k.model` file is required for text tokenization. After extraction, you should see:
-- `unigram_8k.model` - The SentencePiece model file
-- `unigram_8k.vocab` - The vocabulary file
+- `models/spm_models/unigram_8k.model` - The SentencePiece model file
+- `models/spm_models/unigram_8k.vocab` - The vocabulary file
 
 ### 3. Run Experiments
 
 **Basic Run Command:**
 ```bash
 # Basic usage (from original implementation)
-python "Learning to play text-based games with maximum entropy rl/train.py" \
+python src/train.py \
     --output_dir 'path' \
     --rom_path 'path/game' \
     --spm_path 'path'
@@ -73,27 +73,27 @@ python "Learning to play text-based games with maximum entropy rl/train.py" \
 **Quick Validation (1,000 steps each):**
 ```bash
 # 1. SAC Baseline (no reward shaping)
-python "Learning to play text-based games with maximum entropy rl/train.py" \
-    --output_dir ./validation/baseline_sac \
+python src/train.py \
+    --output_dir ./logging/validation/baseline_sac \
     --rom_path ./dependencies/z-machine-games-master/jericho-game-suite/zork1.z5 \
-    --spm_path "./Learning to play text-based games with maximum entropy rl/unigram_8k.model" \
+    --spm_path "./models/spm_models/unigram_8k.model" \
     --reward_shaping False \
     --max_steps 1000
 
 # 2. SAC + Static Reward Shaping  
-python "Learning to play text-based games with maximum entropy rl/train.py" \
-    --output_dir ./validation/static_shaping \
+python src/train.py \
+    --output_dir ./logging/validation/static_shaping \
     --rom_path ./dependencies/z-machine-games-master/jericho-game-suite/zork1.z5 \
-    --spm_path "./Learning to play text-based games with maximum entropy rl/unigram_8k.model" \
+    --spm_path "./models/spm_models/unigram_8k.model" \
     --reward_shaping True \
     --adaptive_shaping False \
     --max_steps 1000
 
 # 3. SAC + Adaptive Reward Shaping (Our Method)
-python "Learning to play text-based games with maximum entropy rl/train.py" \
-    --output_dir ./validation/adaptive_shaping \
+python src/train.py \
+    --output_dir ./logging/validation/adaptive_shaping \
     --rom_path ./dependencies/z-machine-games-master/jericho-game-suite/zork1.z5 \
-    --spm_path "./Learning to play text-based games with maximum entropy rl/unigram_8k.model" \
+    --spm_path "./models/spm_models/unigram_8k.model" \
     --reward_shaping True \
     --adaptive_shaping True \
     --scheduler_type time_decay \
@@ -106,8 +106,8 @@ python "Learning to play text-based games with maximum entropy rl/train.py" \
 ```bash
 python run_experiments.py \
     --rom_path ./dependencies/z-machine-games-master/jericho-game-suite/zork1.z5 \
-    --spm_path "./Learning to play text-based games with maximum entropy rl/unigram_8k.model" \
-    --output_dir ./experiments \
+    --spm_path "./models/spm_models/unigram_8k.model" \
+    --output_dir ./logging/experiments \
     --seeds 0 1 2 3 4 \
     --max_steps 50000
 ```
@@ -205,18 +205,29 @@ python run_experiments.py \
 - **CPU**: ~6-12 hours per 50k step experiment
 - **Learning**: Agent scores should improve within first 1000 steps
 
+### Output Organization
+All experiment outputs are organized in the `logging/` directory to keep the main project clean:
+- `logging/validation/` - Quick validation runs (1,000 steps)
+- `logging/experiments/` - Full multi-seed experiments (50,000 steps)
+- `logging/baseline_reproduction/` - Baseline reproduction runs
+- Each run creates subdirectories with logs, checkpoints, and TensorBoard files
+
 ## Repository Structure
 
 ```
-├── Learning to play text-based games with maximum entropy rl/
+├── src/                      # Source code
 │   ├── train.py              # Main training script
-│   ├── sac_rs.py            # SAC algorithm with reward shaping
-│   ├── adaptive_shaping.py   # 🆕 Adaptive shaping schedulers
-│   ├── models.py            # Neural network architectures
-│   └── unigram_8k.model     # SentencePiece model (extract from zip)
+│   ├── sac_rs.py             # SAC algorithm with reward shaping
+│   ├── adaptive_shaping.py   # Adaptive shaping schedulers
+│   └── models.py             # Neural network architectures
+├── models/                   # SentencePiece models only
+│   ├── spm_models.zip        # SentencePiece model archive
+│   └── spm_models/           # Extracted SentencePiece models (after setup)
+│       ├── unigram_8k.model  # SentencePiece model file
+│       └── unigram_8k.vocab  # SentencePiece vocabulary file
 ├── run_experiments.py        # Multi-seed experiment runner
-├── dependencies/             # Jericho games
-└── README.md                # This file
+├── dependencies/             # Game files (setup required)
+└── logging/                  # Experiment outputs (created during runs)
 ```
 
 ## References
