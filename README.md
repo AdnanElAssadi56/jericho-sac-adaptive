@@ -219,14 +219,21 @@ All experiment outputs are organized in the `logging/` directory to keep the mai
 │   ├── train.py              # Main training script
 │   ├── sac_rs.py             # SAC algorithm with reward shaping
 │   ├── adaptive_shaping.py   # Adaptive shaping schedulers
-│   └── models.py             # Neural network architectures
-├── models/                   # SentencePiece models only
+│   ├── models.py             # Neural network architectures
+│   ├── env.py                # Environment wrapper
+│   ├── logger.py             # Logging utilities
+│   ├── memory.py             # Replay buffer
+│   └── utils.py              # Utility functions
+├── models/                   # SentencePiece models
 │   ├── spm_models.zip        # SentencePiece model archive
-│   └── spm_models/           # Extracted SentencePiece models (after setup)
+│   └── spm_models/           # Extracted models (after setup)
 │       ├── unigram_8k.model  # SentencePiece model file
 │       └── unigram_8k.vocab  # SentencePiece vocabulary file
+├── results/                  # Curated results for research
 ├── run_experiments.py        # Multi-seed experiment runner
+├── analyze_results.py        # Results analysis script
 ├── dependencies/             # Game files (setup required)
+│   └── z-machine-games-master/ # Jericho game suite (after setup)
 └── logging/                  # Experiment outputs (created during runs)
 ```
 
