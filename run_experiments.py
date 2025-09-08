@@ -27,7 +27,7 @@ def run_single_experiment(config, experiment_name, seed, output_base_dir):
     
     # Build command
     cmd = [
-        "python", "Learning to play text-based games with maximum entropy rl/train.py",
+        "python", "src/train.py",
         "--output_dir", output_dir,
         "--seed", str(seed),
         "--tensorboard", "1",
@@ -70,7 +70,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run adaptive reward shaping experiments")
     parser.add_argument("--rom_path", required=True, help="Path to game ROM")
     parser.add_argument("--spm_path", required=True, help="Path to SentencePiece model")
-    parser.add_argument("--output_dir", default="experiments", help="Base output directory")
+    parser.add_argument("--output_dir", default="logging/experiments", help="Base output directory")
     parser.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2, 3, 4], 
                        help="Random seeds to use")
     parser.add_argument("--max_steps", type=int, default=100000, help="Maximum training steps")
