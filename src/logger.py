@@ -106,7 +106,7 @@ class JSONOutputFormat(KVWriter):
 
 class WandBOutputFormat(KVWriter):
     def __init__(self, args):
-        wandb.init(project=args.wandb_project, groupd=args.wandb_group, entity="", config=args)
+        wandb.init(project=args.wandb_project, group=args.wandb_group, entity="", config=vars(args))
         self.output_dir = args.output_dir
 
     def writekvs(self, kvs):
@@ -154,39 +154,45 @@ class CSVOutputFormat(KVWriter):
 
 class TensorBoardOutputFormat(KVWriter):
     """
-    Dumps key/value pairs into TensorBoard's numeric format.
+    Dumps key/value pairs into TensorBoard's numeric format using modern TensorFlow API.
     """
 
     def __init__(self, dir):
         os.makedirs(dir, exist_ok=True)
         self.dir = dir
         self.step = 1
-        prefix = 'events'
-        path = osp.join(osp.abspath(dir), prefix)
-        import tensorflow as tf
-        from tensorflow.python import pywrap_tensorflow
-        from tensorflow.core.util import event_pb2
-        from tensorflow.python.util import compat
-        self.tf = tf
-        self.event_pb2 = event_pb2
-        self.pywrap_tensorflow = pywrap_tensorflow
-        self.writer = pywrap_tensorflow.EventWriter(compat.as_bytes(path))
+        try:
+            import tensorflow as tf
+            self.tf = tf
+            self.writer = tf.summary.create_file_writer(dir)
+        except ImportError:
+            print("Warning: TensorFlow not available, TensorBoard logging disabled")
+            self.writer = None
+            self.tf = None
+        except Exception as e:
+            print(f"Warning: Failed to initialize TensorBoard writer: {e}")
+            self.writer = None
+            self.tf = None
 
     def writekvs(self, kvs):
-        def summary_val(k, v):
-            kwargs = {'tag': k, 'simple_value': float(v)}
-            return self.tf.Summary.Value(**kwargs)
-
-        summary = self.tf.Summary(value=[summary_val(k, v) for k, v in kvs.items()])
-        event = self.event_pb2.Event(wall_time=time.time(), summary=summary)
-        event.step = self.step  # is there any reason why you'd want to specify the step?
-        self.writer.WriteEvent(event)
-        self.writer.Flush()
-        self.step += 1
+        if self.writer is None or self.tf is None:
+            return
+        
+        try:
+            with self.writer.as_default():
+                for k, v in kvs.items():
+                    self.tf.summary.scalar(k, float(v), step=self.step)
+                self.writer.flush()
+            self.step += 1
+        except Exception as e:
+            print(f"Warning: Failed to write to TensorBoard: {e}")
 
     def close(self):
         if self.writer:
-            self.writer.Close()
+            try:
+                self.writer.close()
+            except:
+                pass
             self.writer = None
 
 
@@ -507,22 +513,35 @@ def read_tb(path):
     import numpy as np
     from glob import glob
     from collections import defaultdict
-    import tensorflow as tf
+    try:
+        import tensorflow as tf
+    except ImportError:
+        raise ImportError("TensorFlow is required to read TensorBoard files")
+    
     if osp.isdir(path):
         fnames = glob(osp.join(path, "events.*"))
     elif osp.basename(path).startswith("events."):
         fnames = [path]
     else:
         raise NotImplementedError("Expected tensorboard file or directory containing them. Got %s" % path)
+    
     tag2pairs = defaultdict(list)
     maxstep = 0
     for fname in fnames:
-        for summary in tf.train.summary_iterator(fname):
-            if summary.step > 0:
-                for v in summary.summary.value:
-                    pair = (summary.step, v.simple_value)
-                    tag2pairs[v.tag].append(pair)
-                maxstep = max(summary.step, maxstep)
+        try:
+            for summary in tf.compat.v1.train.summary_iterator(fname):
+                if summary.step > 0:
+                    for v in summary.summary.value:
+                        pair = (summary.step, v.simple_value)
+                        tag2pairs[v.tag].append(pair)
+                    maxstep = max(summary.step, maxstep)
+        except Exception as e:
+            print(f"Warning: Could not read {fname}: {e}")
+            continue
+    
+    if not tag2pairs:
+        return pandas.DataFrame()
+    
     data = np.empty((maxstep, len(tag2pairs)))
     data[:] = np.nan
     tags = sorted(tag2pairs.keys())

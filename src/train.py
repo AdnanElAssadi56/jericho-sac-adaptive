@@ -19,6 +19,7 @@ from collections import namedtuple
 from memory import *
 from utils import *
 from sac_rs import *
+from adaptive_shaping import AdaptiveRewardShaper
 import logger
 import logging
 import wandb
@@ -55,13 +56,25 @@ def parse_args():
     parser.add_argument('--memory_size', default=100000, type=int)
     parser.add_argument('--batch_size', default= 32, type=int)
     parser.add_argument('--gamma', default=.9, type=float)
-    parser.add_argument('--learning_rate', default=0.0001, type=float)
+    parser.add_argument('--learning_rate', default=0.0003, type=float)
     parser.add_argument('--clip', default=5, type=float)
     parser.add_argument('--embedding_dim', default=128, type=int)
     parser.add_argument('--hidden_dim', default=128, type=int)
     parser.add_argument('--load_checkpoint', default="")
     #Reward shaping
     parser.add_argument('--reward_shaping', default=False, type=bool)
+    # Adaptive reward shaping
+    parser.add_argument('--adaptive_shaping', default=False, type=bool)
+    parser.add_argument('--scheduler_type', default='time_decay', type=str)
+    parser.add_argument('--initial_alpha', default=1.0, type=float)
+    parser.add_argument('--decay_rate', default=0.001, type=float)
+    parser.add_argument('--decay_type', default='exponential', type=str)
+    parser.add_argument('--sparsity_threshold', default=50, type=int)
+    parser.add_argument('--boost_factor', default=2.0, type=float)
+    parser.add_argument('--entropy_threshold', default=0.5, type=float)
+    parser.add_argument('--uncertainty_window', default=50, type=int)
+    parser.add_argument('--min_alpha', default=0.1, type=float)
+    parser.add_argument('--max_alpha', default=2.0, type=float)
     # logger
     parser.add_argument('--tensorboard', default=0, type=int)
     parser.add_argument('--wandb', default=0, type=int)

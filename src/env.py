@@ -37,20 +37,30 @@ class JerichoEnv:
 
         if done == False:
             try:
+                # Save current state before any exploration
                 save = self.env.get_state()
-                self.env.set_state(save)
+                
+                # Get look and inventory information (these change the state)
                 look, _, _, _ = self.env.step('look')
                 info['look'] = look.lower()
                 cur_inv,_, _, _= self.env.step('inventory')
                 info['inv'] = cur_inv.lower()
-
+                
+                # Restore to the original state before getting valid actions
+                self.env.set_state(save)
+                
+                # Get valid actions from the original state
                 valid = self.env.get_valid_actions(use_parallel=False)
 
                 if len(valid) == 0:
                     valid = ['wait','yes','no']
                 info['valid'] = valid
-            except RuntimeError:
+            except RuntimeError as e:
                 print('RuntimeError: {}, Done: {}, Info: {}'.format(clean(ob), done, info))
+                # Provide safe fallbacks if state operations fail
+                info['look'] = ob.lower()
+                info['inv'] = 'unknown'
+                info['valid'] = ['wait','yes','no']
         self.steps += 1
         if self.step_limit and self.steps >= self.step_limit:
             done = True

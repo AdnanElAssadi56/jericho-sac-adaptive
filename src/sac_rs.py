@@ -72,6 +72,42 @@ class SACAgent(nn.Module):
         self.critic_target.train()
         set_seed_everywhere(args.seed)
         self.save_path =  os.path.join( args.output_dir, 'model'+'.pt')
+        
+        # Initialize adaptive reward shaper if enabled
+        if hasattr(args, 'adaptive_shaping') and args.adaptive_shaping:
+            # Filter scheduler parameters based on scheduler type
+            if args.scheduler_type == 'time_decay':
+                scheduler_params = {
+                    'initial_alpha': args.initial_alpha,
+                    'decay_rate': args.decay_rate,
+                    'decay_type': getattr(args, 'decay_type', 'exponential'),
+                    'total_steps': args.max_steps
+                }
+            elif args.scheduler_type == 'sparsity_triggered':
+                scheduler_params = {
+                    'initial_alpha': args.initial_alpha,
+                    'sparsity_threshold': args.sparsity_threshold,
+                    'boost_factor': args.boost_factor,
+                    'window_size': 100  # default window size
+                }
+            elif args.scheduler_type == 'uncertainty_informed':
+                scheduler_params = {
+                    'initial_alpha': args.initial_alpha,
+                    'entropy_threshold': args.entropy_threshold,
+                    'uncertainty_window': args.uncertainty_window,
+                    'min_alpha': args.min_alpha,
+                    'max_alpha': args.max_alpha
+                }
+            else:
+                scheduler_params = {'initial_alpha': args.initial_alpha}
+                
+            from adaptive_shaping import AdaptiveRewardShaper
+            self.adaptive_shaper = AdaptiveRewardShaper(
+                scheduler_type=args.scheduler_type,
+                scheduler_params=scheduler_params
+            )
+        else:
+            self.adaptive_shaper = None
 
     def train(self, training=True):
         self.training = training
@@ -128,12 +164,38 @@ class SACAgent(nn.Module):
                 current_V = [(act*(torch.min(t1,t2) - self.alpha.detach() * log)).sum(dim = 0, keepdim =True) for act,t1,t2,log in zip(current_act_probs,current_Q1,current_Q2,current_log_prob)]
                 current_V = torch.cat((current_V),0)
 
+                # Use adaptive shaping if available
+                if self.adaptive_shaper is not None:
+                    # Calculate policy entropy for uncertainty scheduler
+                    policy_entropy = None
+                    q_variance = None
+                    
+                    if self.adaptive_shaper.scheduler_type == 'uncertainty_informed':
+                        # Compute policy entropy
+                        entropies = [-torch.sum(act * log, dim=0) for act, log in zip(current_act_probs, current_log_prob)]
+                        policy_entropy = torch.mean(torch.stack(entropies)).item()
+                        
+                        # Compute Q-value variance
+                        q_values = [torch.min(q1, q2) for q1, q2 in zip(current_Q1, current_Q2)]
+                        q_variance = torch.var(torch.cat(q_values)).item()
+                    
+                    # Compute adaptive shaped rewards
+                    shaped_rewards, current_alpha = self.adaptive_shaper.compute_shaped_reward(
+                        batch, current_V, target_V, step=step,
+                        policy_entropy=policy_entropy,
+                        q_variance=q_variance
+                    )
+                    rewards = shaped_rewards
+                    # Log adaptive alpha for monitoring
+                    if hasattr(logger, 'logkv'):
+                        logger.logkv('adaptive_alpha', current_alpha)
+                else:
+                    # Use static shaping (original implementation)
+                    current_V = [(1-0.1)*c_v + 0.1*(rew + self.rs_discount*t_v) for rew, c_v,t_v in zip(batch.rew, current_V,target_V)]
+                    current_V=torch.stack(current_V)
 
-                current_V = [(1-0.1)*c_v + 0.1*(rew + self.rs_discount*t_v) for rew, c_v,t_v in zip(batch.rew, current_V,target_V)]
-                current_V=torch.stack(current_V)
-
-                reward_shaping = self.rs_discount*target_V - current_V
-                rewards = reward_shaping + reward
+                    reward_shaping = self.rs_discount*target_V - current_V
+                    rewards = reward_shaping + reward
             else:
                 rewards = batch.rew
 
