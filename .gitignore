@@ -1,6 +1,5 @@
 # Experiment outputs (large files, machine-specific)
 logging/
-validation/
 
 # Dependencies (downloaded externally)
 dependencies/
@@ -8,6 +7,7 @@ dependencies/
 # SentencePiece models (large binary files, extracted locally)
 models/spm_models/
 models/__MACOSX/
+models/spm_models.zip
 
 # Python cache
 __pycache__/
@@ -37,4 +37,12 @@ tb_logs/
 # Weights & Biases
 wandb/
 
+# Virtual environment
 .venv
+
+# Paper directory
+paper/
+
+# Unnecessary files
+models/__MACOSX/
+models/spm_models.zip
