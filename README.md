@@ -67,7 +67,7 @@ ls -la spm_models/
 cd ..
 ```
 
-**Important**: The `unigram_8k.model` file is required for text tokenization. After extraction, you should see:
+**Important**: The `unigram_8k.model` file is required for text tokenization. After extraction, the following files will be present:
 - `models/spm_models/unigram_8k.model` - The SentencePiece model file
 - `models/spm_models/unigram_8k.vocab` - The vocabulary file
 
@@ -188,7 +188,7 @@ bash run_experiments/run_adventureland_tmux.sh
 | `--embedding_dim` | 128 | Text embedding dimension |
 | `--hidden_dim` | 128 | Hidden layer dimension |
 
-### Reward Shaping Parameters (your research)
+### Adaptive Reward Shaping Parameters
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `--reward_shaping` | False | Enable reward shaping |
@@ -398,7 +398,7 @@ python generate_paper_figures.py
 ```
 
 ### Expected Runtime
-Each 10k step experiment takes approximately **2-4 hours** depending on hardware. You can run multiple experiments in parallel if you have sufficient resources.
+Each 10k step experiment takes approximately **2-4 hours** depending on hardware. Multiple experiments can be run in parallel if sufficient resources are available.
 
 ### Interpreting Results
 - **Look for trends** rather than absolute scores at 10k steps

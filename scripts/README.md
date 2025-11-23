@@ -201,7 +201,7 @@ All scripts use consistent method names and colors. To add new methods:
 ### "File not found" errors
 - Check that `logging/final/zork1/seed{0,1,3}/` exists
 - Verify progress.json files are present
-- Check GAME and SEEDS variables match your directory structure
+- Check GAME and SEEDS variables match the directory structure
 
 ### "No module named 'scipy'"
 ```bash
